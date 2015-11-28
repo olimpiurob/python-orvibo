@@ -44,9 +44,6 @@ class S20(object):
         :param host: IP or hostname of device.
         """
         self.host = host
-        self._socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        self._socket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
-        self._socket.bind(('', PORT))
         (self._mac, self._mac_reversed) = self._discover_mac()
 
     @property
@@ -81,7 +78,7 @@ class S20(object):
         mac_reversed = None
         cmd = MAGIC + DISCOVERY
         resp = self._udp_transact(cmd, self._discovery_resp,
-                                  broadcast=True, timeout=1.0)
+                                  broadcast=True, timeout=2.0)
         if resp:
             (mac, mac_reversed) = resp
         if not mac:
@@ -202,6 +199,9 @@ class S20(object):
         if broadcast:
             host = '255.255.255.255'
         retval = None
+        self._socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        self._socket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+        self._socket.bind(('', PORT))
         self._socket.settimeout(timeout)
         for _ in range(RETRIES):
             self._socket.sendto(bytearray(payload), (host, PORT))
@@ -213,6 +213,7 @@ class S20(object):
                     break
             if retval:
                 break
+        self._socket.close()
         return retval
 
     def _turn_on(self):
